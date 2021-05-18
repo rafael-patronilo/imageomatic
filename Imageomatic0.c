@@ -307,7 +307,7 @@ static bool validateInt(String s, int max) {
 }
 
 static void uncover(Image img, Int2 n, String dest){
-	char c;
+	char c = 0;
 	char* pointer = dest;
 	Int2 i;
 	for(i.y = 0; i.y < n.y; i.y++)
@@ -318,7 +318,7 @@ static void uncover(Image img, Int2 n, String dest){
 		
 		if (c <= 0x1F) c += '@';
 		else c += ' ';
-		if(c =='@'){
+		if(c == '@'){
 			*pointer = '\0';
 			return;
 		}

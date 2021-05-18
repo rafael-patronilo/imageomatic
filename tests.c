@@ -1,8 +1,5 @@
 #include "Imageomatic.h"
 
-extern void encode(String from, String to, int max);
-extern char encodeChar(char c);
-
 void assertImageEq(Image result, Image expected, Int2 nr, Int2 ne){
     if(!int2Equals(nr, ne)){
         printf("Different sizes:\n");

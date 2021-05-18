@@ -14,6 +14,7 @@ Este ficheiro não pode ser alterado!
 
 
 #include "Imageomatic.h"
+extern void myImageTests(void);
 
 
 /*** TYPE Int2 ***/
@@ -487,7 +488,7 @@ static void executarComando(String parts[], int nParts)
 			break;
 		case '#':
 			if( validateCommand(parts, nParts, "#", 1) ) {
-				imageTests();
+				myImageTests();
 				break;
 			}
 			break;

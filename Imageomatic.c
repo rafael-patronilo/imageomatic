@@ -29,38 +29,50 @@ Comentarios:
 
 #include "Imageomatic.h"
 
-double scaleComponent01(int component){
-	return ((double)component) / MAX_COLOR;
+float scaleComponent01(int component){
+	return ((float)component) / MAX_COLOR;
 }
 
-void encode(String from, String to){
-	*to = '@';
-	while(*from != '\0'){ 
-		char c = *from;
-		if(c >= 'a' && c <= 'z'){
+// convert ASCII character to 6 bit ASCII
+char encodeChar(char c){
+	// capitalize
+	if(c >= 'a' && c <= 'z'){
 			c += 'A' - 'a';
+	}
+	// replace out of bounds and special characters
+	if (c == '\0'){
+		c = '@'; // '@' = 0b100_0000
+	}
+	else if (c < 0x20 || c > 0x5F || c == '@'){
+		c = '?';
+	}
+	// select the 6 less significant bits
+	return c & 0x3F; // 0x3F = 0b011_1111
+}
+
+// convert ASCII string to 6 bit ASCII
+void encode(String from, String to, int maxSize){
+	int i = 0;
+	to[i] = '\0';
+	while(from[i] != '\0'){ 
+		if(i == maxSize - 1){
+			to[i] = '\0';
+			return;
 		}
-		else if (!(c > '@' && c <= '_') && !(c >= ' ' && c <= '?')){
-			c = '?';
-		}
-		from++;
-		if(*from=='\0'){
-			c = '@';
-		}
-		*to = c;
-		to++;
+		to[i] = encodeChar(from[i]);
+		i++;
 	}
 }
 
-#define max(a,b) a > b ? a : b
-#define min(a,b) a < b ? a : b
 #define abs(a) a < 0 ? -a : a
 
 /*** TYPE Int2 ***/
 
 /* More Int2 functions, in case you need them */
 
-
+Int2 int2Sub(Int2 a, Int2 b){
+	return int2(a.x - b.x, a.y - b.y);
+}
 
 
 /*** TYPE Pixel ***/
@@ -88,27 +100,33 @@ Pixel parseColor(String color) {
 	return pixel(code >> 16, (code >> 8) & 0xFF, code & 0xFF);
 }
 
-Pixel blurPixel(Int2 target, int level, Image source, Int2 sourcen){
-	Int2 start;
-	start.x = max(0, target.x - level);
-	start.y = max(0, target.y - level);
-	Int2 end = int2(min(sourcen.x, target.x + level), min(sourcen.y, target.y + level));
+Pixel blurPixel(Int2 target, int level, Image source, Int2 n){
+	Int2 level2 = int2(level, level);
+	Int2 start = int2Max(int2Sub(target, level2), int2Zero);
+	Int2 end = int2Min(int2Add(target, level2), int2Sub(n, int2(1, 1)));
 	Int2 i;
 	int red = 0, green = 0, blue = 0;
-	for(i.y = start.y; i.y < end.y; i.y++)
-	for(i.x = start.x; i.x < end.x; i.x++) {
+	for(i.x = start.x; i.x <= end.x; i.x++)
+	for(i.y = start.y; i.y <= end.y; i.y++) {
 		Pixel pixel = source[i.x][i.y];
 		red += pixel.red;
 		green += pixel.green;
 		blue += pixel.blue;
 	}
-	int count = (end.x - start.x) * (end.y - start.y);
+	int count = (end.x - start.x + 1) * (end.y - start.y + 1);
 	red = red / count;
 	green = green / count;
 	blue = blue / count;
 	return pixel(red, green, blue);
 }
 
+void fill(Pixel color, Int2 n, Image res){
+	Int2 i;
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
+		res[i.x][i.y] = color;
+	}
+}
 
 /*** TYPE Image ***/
 
@@ -122,8 +140,8 @@ void initialization(void)
 Int2 imageCopy(Image img, Int2 n, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		res[i.x][i.y] = img[i.x][i.y];
 	}
 	return n;
@@ -132,19 +150,15 @@ Int2 imageCopy(Image img, Int2 n, Image res)
 Int2 imagePaint(String cor, Int2 n, Image res)
 {
 	Pixel color = parseColor(cor);
-	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
-		res[i.x][i.y] = color;
-	}
+	fill(color, n, res);
 	return n;
 }
 
 Int2 imageNegative(Image img, Int2 n, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		Pixel pixel = img[i.x][i.y];
 		pixel.red = MAX_COLOR - pixel.red;
 		pixel.green = MAX_COLOR - pixel.green;
@@ -158,8 +172,8 @@ Int2 imageDroplet(Int2 n, Image res)
 {
 	Int2 i;
 	Int2 center = int2Half(n);
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		Pixel pixel;
 		double dist = int2Distance(i, center);
 		pixel.red = pixel.green = pixel.blue = 0.7* MAX_COLOR + 0.3 * sin(dist / 20) * MAX_COLOR;
@@ -171,8 +185,8 @@ Int2 imageDroplet(Int2 n, Image res)
 Int2 imageMask(Image img1, Int2 n1, Image img2, Int2 n2, Image res) // pre: int2Equals(n1, n2)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n1.y; i.y++)
-	for(i.x = 0; i.x < n1.x; i.x++) {
+	for(i.x = 0; i.x < n1.x; i.x++)
+	for(i.y = 0; i.y < n1.y; i.y++) {
 		Pixel pixel = img1[i.x][i.y];
 		Pixel pixel2 = img2[i.x][i.y];
 		pixel.red = pixel.red * scaleComponent01(pixel2.red);
@@ -186,8 +200,8 @@ Int2 imageMask(Image img1, Int2 n1, Image img2, Int2 n2, Image res) // pre: int2
 Int2 imageGrayscale(Image img, Int2 n, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		int value = pixelGrayAverage(img[i.x][i.y]);
 		res[i.x][i.y] = pixelGray(value);
 	}
@@ -197,8 +211,8 @@ Int2 imageGrayscale(Image img, Int2 n, Image res)
 Int2 imageBlur(Image img, Int2 n, int nivel, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		res[i.x][i.y] = blurPixel(i, nivel, img, n);
 	}
 	return n;
@@ -207,9 +221,9 @@ Int2 imageBlur(Image img, Int2 n, int nivel, Image res)
 Int2 imageRotation90(Image img, Int2 n, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
-		res[n.y - i.y][i.x] = img[i.x][i.y];
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
+		res[n.y - i.y - 1][i.x] = img[i.x][i.y];
 	}
 	return int2(n.y, n.x);
 }
@@ -218,8 +232,8 @@ Int2 imagePosterize(Image img, Int2 n, int factor, Image res)
 {
 	int interval = 1 << (8 - factor);
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		Pixel pixel = img[i.x][i.y];
 		pixel.red = (pixel.red / interval) * interval;
 		pixel.green = (pixel.green / interval) * interval;
@@ -232,16 +246,16 @@ Int2 imagePosterize(Image img, Int2 n, int factor, Image res)
 Int2 imageHalf(Image img, Int2 n, Image res)
 {
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y+=2)
-	for(i.x = 0; i.x < n.x; i.x+=2) {
+	for(i.x = 0; i.x < n.x; i.x+=2)
+	for(i.y = 0; i.y < n.y; i.y+=2) {
 		res[i.x / 2][i.y / 2] = img[i.x][i.y];
 	}
-	return int2(n.x / 2, n.y / 2);
+	return int2Half(n);
 }
 
 Int2 imageFunctionPlotting(DoubleFun fun, int scale, Int2 n, Image res)
 {
-	imagePaint("ffffff", n, res);
+	fill(white, n, res);
 	Int2 center = int2Half(n);
 	for(int x = 0; x < n.x; x++){
 		int y = center.y - (fun((double)(x - center.x)/scale) * scale);
@@ -250,22 +264,6 @@ Int2 imageFunctionPlotting(DoubleFun fun, int scale, Int2 n, Image res)
 	}
 	for(int y = 0; y < n.y; y++) res[center.x][y] = black;
 	return n;
-	/* TODO
-	Int2 center = int2Half(n);
-	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
-		double x = (double)(i.x - center.x) / (double)scale;
-		int y = (double)(i.y - center.y) / (double)scale;
-		if(i.x == center.x || i.y == center.y || (int)fun(x) == y) {
-			res[i.x][i.y] = black;
-		}
-		else{
-			res[i.x][i.y] = white;
-		}
-	}
-	return n;
-	*/
 }
 
 Int2 imageOrderedDithering(Image img, Int2 n, Image res)
@@ -282,8 +280,8 @@ Int2 imageOrderedDithering(Image img, Int2 n, Image res)
 					{63, 31, 55, 23, 61, 29, 53, 21}
 			};
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
 		Byte threshold = indexMatrix[i.x % INDEX_SIDE][i.y % INDEX_SIDE];
 		double intensity = pixelGrayAverage(img[i.x][i.y]) / 4.0;
 		if(intensity > threshold){
@@ -298,18 +296,19 @@ Int2 imageOrderedDithering(Image img, Int2 n, Image res)
 
 Int2 imageSteganography(Image img, Int2 n, String s, Image res)
 {
-	char* encoded;
-	encode(s, encoded);
+	String encoded;
+	char* pointer;
+	encode(s, encoded, n.x * n.y);
 	Int2 i;
-	for(i.y = 0; i.y < n.y; i.y++)
-	for(i.x = 0; i.x < n.x; i.x++) {
-		if(*encoded != '@'){
+	for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
+		if(*pointer != '\0'){
 			Pixel pixel = img[i.x][i.y];
-			pixel.red = (pixel.red & 0xFC) | ((*encoded & 0x30) >> 4);
-			pixel.green = (pixel.green & 0xFC) | ((*encoded & 0xC) >> 2);
-			pixel.blue = (pixel.blue & 0xFC) | (*encoded & 0x3);
+			pixel.red = (pixel.red & 0xFC) | (*pointer >> 4);
+			pixel.green = (pixel.green & 0xFC) | ((*pointer & 0xC) >> 2);
+			pixel.blue = (pixel.blue & 0xFC) | (*pointer & 0x3);
 			res[i.x][i.y] = pixel;
-			encoded++;
+			pointer++;
 		}
 		else{
 			res[i.x][i.y] = img[i.x][i.y];
@@ -332,13 +331,12 @@ void imageTests(void)
 	// N
 	n = imageLoad("img/frutos.png", img);
 	n = imageNegative(img, n, res);
-	imageStore("img/negativo.png", res, n);	
+	imageStore("img/negativo.png", res, n);
 
 	// H
 	n = imageLoad("img/frutos.png", img);
 	n = imageHalf(img, n, res);
 	imageStore("img/metade.png", res, n);
-
 	// P
 	n = int2(512, 512);
 	n = imagePaint("green", n, res);

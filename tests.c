@@ -1,5 +1,8 @@
 #include "Imageomatic.h"
 
+extern void encode(String from, String to, int max);
+extern char encodeChar(char c);
+
 void assertImageEq(Image result, Image expected, Int2 nr, Int2 ne){
     if(!int2Equals(nr, ne)){
         printf("Different sizes:\n");
@@ -24,6 +27,35 @@ void assertImageEq(Image result, Image expected, Int2 nr, Int2 ne){
             }
         }
 	}
+}
+
+void printHexCodes(unsigned char* chars, int n){
+    for(int i = 0; i < n; i++){
+        printf("0x%02x ", chars[i]);
+    }
+}
+
+char decFromPixel(Pixel pixel){
+    char c = 0;
+    c = c | ((pixel.red & 0b11) << 4);
+    c = c | ((pixel.green & 0b11) << 2);
+    c = c | (pixel.blue & 0b11);
+    if(c == 0) return '\0';
+    else if (c <= 0x1f) return c + 0x40;
+    else return c;
+}
+
+void decode(Image img, Int2 n, String out){
+    Int2 i;
+    for(i.x = 0; i.x < n.x; i.x++)
+	for(i.y = 0; i.y < n.y; i.y++) {
+        char c = decFromPixel(img[i.x][i.y]);
+        *out = c;
+        if(c == '\0') {
+            return;
+        }
+        out++;
+    }
 }
 
 void myImageTests(void)
@@ -123,9 +155,23 @@ void myImageTests(void)
     test("matizacao")
     printf("\n\n");
 
+    String test;
 	// E
     printf("E - Steganography\n");
 	n = imageLoad("img/frutos.png", img);
 	n = imageSteganography(img, n, "atacamos ao amanhecer", res);
+    decode(res, n, test);
+    printf("%s\n", test);
 	imageStore("img/esteganografia.png", res, n);
+
+    n = imageLoad("img/esteganografia.png", img);
+    decode(img, n, test);
+    printf("%s\n", test);
+
+    n = int2(25, 4);
+    n = imagePaint("ff00ff", n, img);
+    n = imageSteganography(img, n, "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz :;<>=+*-_.,&%$#'\"!^[]()/\\? 0123456789 @ `~|{} opweiwoieiwheiuw", res);
+    decode(res, n, test);
+    printf("%s\n", test);
+    printf("%s\n", strcmp(test, "ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ :;<>=+*-_.,&%$#'\"!^[]()/\\? 0123456789 ? ?????") == 0 ? "positive" : "negative");
 }

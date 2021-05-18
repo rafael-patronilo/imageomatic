@@ -53,15 +53,21 @@ char encodeChar(char c){
 // convert ASCII string to 6 bit ASCII
 void encode(String from, String to, int maxSize){
 	int i = 0;
-	to[i] = '\0';
 	while(from[i] != '\0'){ 
 		if(i == maxSize - 1){
-			to[i] = '\0';
-			return;
+			break;
 		}
 		to[i] = encodeChar(from[i]);
 		i++;
 	}
+	to[i] = 0;
+}
+
+Pixel hideInPixel(Pixel pixel, char c){
+	pixel.red = (pixel.red & 0xFC) | (c >> 4);
+	pixel.green = (pixel.green & 0xFC) | ((c & 0xC) >> 2);
+	pixel.blue = (pixel.blue & 0xFC) | (c & 0x3);
+	return pixel;
 }
 
 #define abs(a) a < 0 ? -a : a
@@ -297,18 +303,19 @@ Int2 imageOrderedDithering(Image img, Int2 n, Image res)
 Int2 imageSteganography(Image img, Int2 n, String s, Image res)
 {
 	String encoded;
-	char* pointer;
+	char* pointer = encoded;
+	bool finished = false;
 	encode(s, encoded, n.x * n.y);
 	Int2 i;
 	for(i.x = 0; i.x < n.x; i.x++)
 	for(i.y = 0; i.y < n.y; i.y++) {
 		if(*pointer != '\0'){
-			Pixel pixel = img[i.x][i.y];
-			pixel.red = (pixel.red & 0xFC) | (*pointer >> 4);
-			pixel.green = (pixel.green & 0xFC) | ((*pointer & 0xC) >> 2);
-			pixel.blue = (pixel.blue & 0xFC) | (*pointer & 0x3);
-			res[i.x][i.y] = pixel;
+			res[i.x][i.y] = hideInPixel(img[i.x][i.y], *pointer);
 			pointer++;
+		}
+		else if (!finished){
+			res[i.x][i.y] = hideInPixel(img[i.x][i.y], 0);
+			finished = true;
 		}
 		else{
 			res[i.x][i.y] = img[i.x][i.y];

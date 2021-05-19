@@ -29,8 +29,8 @@ Comentarios:
 
 #include "Imageomatic.h"
 
-float scaleComponent01(int component){
-	return ((float)component) / MAX_COLOR;
+double scaleComponent01(int component){
+	return ((double)component) / MAX_COLOR;
 }
 
 // convert ASCII character to 6 bit ASCII

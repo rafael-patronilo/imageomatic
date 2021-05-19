@@ -86,24 +86,26 @@ Int2 int2Sub(Int2 a, Int2 b){
 /* More Pixel functions, in case you need them */
 
 Pixel parseColor(String color) {
-	int code;
+	unsigned int red, green, blue;
+	char discard; //Required to catch a trailing character in the case of a string like fffffz
 	// Check if the input color is a valid hexadecimal code
-	if(strlen(color) > 6 || sscanf(color, "%x", &code) != 1){
+	if(sscanf(color, "%02x%02x%02x%c", &red, &green, &blue, &discard) != 3){
 		// Not an hexadecimal code, look for the name in colorsFileName
 		FILE * colors = fopen(colorsFileName, "r");
 		String fcolor;
 		bool found = false;
-		while(!found && fscanf(colors, "%x %s\n", &code, fcolor) == 2){
+		while(!found && fscanf(colors, "%02x%02x%02x %s\n", &red, &green, &blue, fcolor) == 4){
 			if(strcmp(color, fcolor) == 0){
 				found = true;
 			}
 		}
+		fclose(colors);
 		// Not in colorsFileName, set to black
 		if(!found){
-			code = 0;
+			red = green = blue = 0;
 		}
 	}
-	return pixel(code >> 16, (code >> 8) & 0xFF, code & 0xFF);
+	return pixel(red, green, blue);
 }
 
 Pixel blurPixel(Int2 target, int level, Image source, Int2 n){

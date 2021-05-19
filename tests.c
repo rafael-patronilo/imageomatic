@@ -44,8 +44,8 @@ char decFromPixel(Pixel pixel){
 
 void decode(Image img, Int2 n, String out){
     Int2 i;
-    for(i.x = 0; i.x < n.x; i.x++)
-	for(i.y = 0; i.y < n.y; i.y++) {
+    for(i.y = 0; i.y < n.y; i.y++)
+    for(i.x = 0; i.x < n.x; i.x++) {
         char c = decFromPixel(img[i.x][i.y]);
         *out = c;
         if(c == '\0') {

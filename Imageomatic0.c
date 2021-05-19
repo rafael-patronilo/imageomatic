@@ -15,7 +15,7 @@ Este ficheiro não pode ser alterado!
 
 #include "Imageomatic.h"
 extern void myImageTests(void);
-
+extern void decode(Image img, Int2 n, String out);
 
 /*** TYPE Int2 ***/
 
@@ -493,7 +493,7 @@ static void executarComando(String parts[], int nParts)
 			}
 			break;
 		case 'U':
-			uncover(ia, na, dest);
+			decode(ia, na, dest);
 			printf("%s\n", dest);
 			break;
 		default:

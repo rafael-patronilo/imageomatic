@@ -307,8 +307,8 @@ Int2 imageSteganography(Image img, Int2 n, String s, Image res)
 	bool finished = false;
 	encode(s, encoded, n.x * n.y);
 	Int2 i;
-	for(i.x = 0; i.x < n.x; i.x++)
-	for(i.y = 0; i.y < n.y; i.y++) {
+	for(i.y = 0; i.y < n.y; i.y++)
+	for(i.x = 0; i.x < n.x; i.x++) {
 		if(*pointer != '\0'){
 			res[i.x][i.y] = hideInPixel(img[i.x][i.y], *pointer);
 			pointer++;

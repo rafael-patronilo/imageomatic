@@ -55,6 +55,10 @@ void decode(Image img, Int2 n, String out){
     }
 }
 
+double squareX(double x){
+    return x * x;
+}
+
 void myImageTests(void)
 {
 	static Image img, img2, res, expected; 
@@ -142,6 +146,9 @@ void myImageTests(void)
 	n = imageFunctionPlotting(sin, 50, n, res);
 	imageStore("img/funcao.png", res, n);
     test("funcao")
+    printf("F - Function(x^2)\n");
+    n = imageFunctionPlotting(squareX, 50, n, res);
+	imageStore("img/squarex.png", res, n);
     printf("\n\n");
 
 	// T
